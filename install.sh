@@ -334,8 +334,9 @@ case "${1:-}" in
         echo "Usage: $0 [options]"
         echo ""
         echo "Options:"
-        echo "  --help, -h     Show this help message"
-        echo "  --uninstall    Uninstall smart-suggestion"
+        echo "  --help, -h            Show this help message"
+        echo "  --shell [zsh|fish]    Install for specific shell (auto-detected if not specified)"
+        echo "  --uninstall           Uninstall smart-suggestion"
         echo ""
         echo "Environment variables:"
         echo "  INSTALL_DIR    Installation directory (default: $INSTALL_DIR)"
@@ -364,13 +365,20 @@ case "${1:-}" in
         echo "Please restart your shell or run: source ~/.zshrc"
         exit 0
         ;;
+    --shell)
+        # Shell specified
+        detect_shell "$@"
+        main
+        ;;
     "")
         # Default installation
+        detect_shell
         main
         ;;
     *)
         log_error "Unknown option: $1"
         echo "Use --help for usage information"
+        echo "Supported options: --shell [zsh|fish], --uninstall"
         exit 1
         ;;
 esac
