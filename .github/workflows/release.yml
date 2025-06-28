@@ -120,6 +120,7 @@ jobs:
           
           # Copy plugin files
           cp smart-suggestion.plugin.zsh "$temp_dir/"
+          cp smart-suggestion-core.sh "$temp_dir/"
           cp README.md "$temp_dir/"
           
           # Create tar.gz archive with proper directory name
