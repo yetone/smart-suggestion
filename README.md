@@ -1,10 +1,10 @@
-# Smart Suggestion for Zsh & Fish
+# Smart Suggestion for Zsh
 
 > [!NOTE]
 >
-> This project is a fork of [zsh-copilot](https://github.com/Myzel394/zsh-copilot) by [Myzel394](https://github.com/Myzel394), with added support for fish shell.
+> This project is a fork of [zsh-copilot](https://github.com/Myzel394/zsh-copilot) by [Myzel394](https://github.com/Myzel394).
 
-Get AI-powered command suggestions **directly** in your zsh or fish shell. No complex setup, no external tools - just press `CTRL + O` and get intelligent command suggestions powered by OpenAI, Anthropic Claude, or Google Gemini.
+Get AI-powered command suggestions **directly** in your zsh shell. No complex setup, no external tools - just press `CTRL + O` and get intelligent command suggestions powered by OpenAI, Anthropic Claude, or Google Gemini.
 
 > [!NOTE]
 >
@@ -29,9 +29,8 @@ Get AI-powered command suggestions **directly** in your zsh or fish shell. No co
 
 Make sure you have the following installed:
 
-- **zsh** or **fish** shell
-- For zsh: **[zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)** plugin
-- For fish: Built-in autosuggestions (included by default)
+- **zsh** shell
+- **[zsh-autosuggestions](https://github.com/zsh-users/zsh-autosuggestions)** plugin
 - An API key for one of the supported AI providers
 
 ### Method 1: Quick Install (Recommended)
@@ -56,33 +55,7 @@ This script will:
 curl -fsSL https://raw.githubusercontent.com/yetone/smart-suggestion/main/install.sh | bash -s -- --uninstall
 ```
 
-### Method 2: Fisher (for fish) - Recommended for Fish Users
-
-Install with a single command:
-
-```bash
-fisher install yetone/smart-suggestion
-```
-
-That's it! Fisher will automatically:
-- Download the plugin
-- Build the Go binary (requires Go 1.21+)
-- Set up the configuration
-- Make the plugin available immediately
-
-Then set up your AI provider API key:
-
-```bash
-set -Ux OPENAI_API_KEY "your-api-key"     # For OpenAI
-# OR
-set -Ux ANTHROPIC_API_KEY "your-api-key"  # For Anthropic
-# OR
-set -Ux GEMINI_API_KEY "your-api-key"     # For Google Gemini
-```
-
-Start using Smart Suggestion by pressing `Ctrl+O` in your terminal!
-
-### Method 3: Oh My Zsh (for zsh)
+### Method 2: Oh My Zsh
 
 1. Clone the repository into your Oh My Zsh custom plugins directory:
 
@@ -110,12 +83,10 @@ cd ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/smart-suggestion
 4. Reload your shell:
 
 ```bash
-source ~/.zshrc  # for zsh
-# OR
-source ~/.config/fish/config.fish  # for fish
+source ~/.zshrc
 ```
 
-### Method 4: Manual Installation from Source
+### Method 3: Manual Installation from Source
 
 1. Clone the repository:
 
@@ -133,20 +104,16 @@ cd ~/.config/smart-suggestion
 3. Add to your `~/.zshrc`:
 
 ```bash
-source ~/.config/smart-suggestion/smart-suggestion.plugin.zsh  # for zsh
-# OR
-source ~/.config/smart-suggestion/smart-suggestion.plugin.fish  # for fish
+source ~/.config/smart-suggestion/smart-suggestion.plugin.zsh
 ```
 
 4. Reload your shell:
 
 ```bash
-source ~/.zshrc  # for zsh
-# OR
-source ~/.config/fish/config.fish  # for fish
+source ~/.zshrc
 ```
 
-### Method 5: Manual Installation from Release
+### Method 4: Manual Installation from Release
 
 1. Download the latest release for your platform from [GitHub Releases](https://github.com/yetone/smart-suggestion/releases)
 
@@ -160,17 +127,13 @@ tar -xzf smart-suggestion-*.tar.gz -C ~/.config/smart-suggestion --strip-compone
 3. Add to your `~/.zshrc`:
 
 ```bash
-source ~/.config/smart-suggestion/smart-suggestion.plugin.zsh  # for zsh
-# OR
-source ~/.config/smart-suggestion/smart-suggestion.plugin.fish  # for fish
+source ~/.config/smart-suggestion/smart-suggestion.plugin.zsh
 ```
 
 4. Reload your shell:
 
 ```bash
-source ~/.zshrc  # for zsh
-# OR
-source ~/.config/fish/config.fish  # for fish
+source ~/.zshrc
 ```
 
 ## Configuration
@@ -213,7 +176,7 @@ Configure the plugin behavior with these environment variables:
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
 | `SMART_SUGGESTION_AI_PROVIDER` | AI provider to use | Auto-detected | `openai`, `azure_openai`, `anthropic`, `gemini` |
-| `SMART_SUGGESTION_KEY` | Keybinding to trigger suggestions | `^o` (zsh), `\co` (fish) | Any shell keybinding |
+| `SMART_SUGGESTION_KEY` | Keybinding to trigger suggestions | `^o` | Any zsh keybinding |
 | `SMART_SUGGESTION_SEND_CONTEXT` | Send shell context to AI | `true` | `true`, `false` |
 | `SMART_SUGGESTION_PROXY_MODE` | Enable proxy mode for better context | `true` | `true`, `false` |
 | `SMART_SUGGESTION_DEBUG` | Enable debug logging | `false` | `true`, `false` |
@@ -266,7 +229,7 @@ smart-suggestion
 3. **Context Collection**: Gathers rich shell context including user info, directory, command history, aliases, and terminal buffer content via proxy mode
 4. **AI Processing**: Sends the input and context to your configured AI provider
 5. **Smart Response**: AI returns either a completion (`+`) or new command (`=`)
-6. **Shell Integration**: The suggestion is displayed using shell-specific autosuggestions (zsh-autosuggestions for zsh, built-in for fish) or replaces your input
+6. **Shell Integration**: The suggestion is displayed using zsh-autosuggestions or replaces your input
 
 ### Proxy Mode (New Default)
 
