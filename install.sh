@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Smart Suggestion Installer
-# This script automatically installs smart-suggestion for zsh and fish
+# This script automatically installs smart-suggestion for zsh
 
 set -e
 
@@ -16,67 +16,7 @@ NC='\033[0m' # No Color
 REPO_URL="https://github.com/yetone/smart-suggestion"
 LATEST_RELEASE_URL="https://api.github.com/repos/yetone/smart-suggestion/releases/latest"
 INSTALL_DIR="$HOME/.config/smart-suggestion"
-SHELL_TYPE="zsh"  # Default shell type
-PLUGIN_FILE="smart-suggestion.plugin.zsh"  # Default plugin file
-
-# Detect user's shell
-detect_shell() {
-    log_info "Detecting shell..."
-    
-    # Check if shell was explicitly specified
-    if [[ "$1" == "--shell" && -n "$2" ]]; then
-        local specified_shell="$2"
-        case "$specified_shell" in
-            zsh)
-                SHELL_TYPE="zsh"
-                PLUGIN_FILE="smart-suggestion.plugin.zsh"
-                log_success "Using specified shell: zsh"
-                return 0
-                ;;
-            fish)
-                SHELL_TYPE="fish"
-                PLUGIN_FILE="smart-suggestion.plugin.fish"
-                log_success "Using specified shell: fish"
-                return 0
-                ;;
-            *)
-                log_error "Unsupported shell: $specified_shell. Supported shells: zsh, fish"
-                exit 1
-                ;;
-        esac
-    fi
-    
-    # Auto-detect shell if not specified
-    local current_shell
-    
-    # Try to get shell from $SHELL environment variable
-    if [[ -n "$SHELL" ]]; then
-        current_shell=$(basename "$SHELL")
-    else
-        # Fallback to /etc/passwd lookup
-        current_shell=$(grep "^$(whoami):" /etc/passwd | cut -d: -f7 | xargs basename 2>/dev/null)
-    fi
-    
-    # Set shell type based on detection
-    case "$current_shell" in
-        zsh)
-            SHELL_TYPE="zsh"
-            PLUGIN_FILE="smart-suggestion.plugin.zsh"
-            log_success "Detected shell: zsh"
-            ;;
-        fish)
-            SHELL_TYPE="fish"
-            PLUGIN_FILE="smart-suggestion.plugin.fish"
-            log_success "Detected shell: fish"
-            ;;
-        *)
-            log_warning "Detected shell: $current_shell (not directly supported)"
-            log_info "Defaulting to zsh configuration"
-            SHELL_TYPE="zsh"
-            PLUGIN_FILE="smart-suggestion.plugin.zsh"
-            ;;
-    esac
-}
+PLUGIN_FILE="smart-suggestion.plugin.zsh"
 
 # Helper functions
 log_info() {
@@ -127,17 +67,10 @@ detect_platform() {
 check_prerequisites() {
     log_info "Checking prerequisites..."
     
-    # Check if the required shell is available
-    if [[ "$SHELL_TYPE" == "fish" ]]; then
-        if ! command_exists fish; then
-            log_error "fish is not installed. Please install fish first."
-            exit 1
-        fi
-    else
-        if ! command_exists zsh; then
-            log_error "zsh is not installed. Please install zsh first."
-            exit 1
-        fi
+    # Check if zsh is available
+    if ! command_exists zsh; then
+        log_error "zsh is not installed. Please install zsh first."
+        exit 1
     fi
     
     # Check if curl or wget is available
@@ -337,40 +270,6 @@ setup_zshrc() {
     log_success "Added smart-suggestion to $zshrc_file with proxy mode enabled by default"
 }
 
-# Setup fish configuration
-setup_fish_config() {
-    local fish_config_dir="$HOME/.config/fish"
-    local fish_config_file="$fish_config_dir/config.fish"
-    local source_line="source $INSTALL_DIR/$PLUGIN_FILE # smart-suggestion"
-    
-    log_info "Setting up fish configuration..."
-    
-    # Create config directory if it doesn't exist
-    if [[ ! -d "$fish_config_dir" ]]; then
-        mkdir -p "$fish_config_dir"
-        log_info "Created fish config directory: $fish_config_dir"
-    fi
-    
-    # Check if already configured
-    if [[ -f "$fish_config_file" ]] && grep -q "smart-suggestion" "$fish_config_file"; then
-        log_warning "Smart Suggestion appears to already be configured in $fish_config_file"
-        return
-    fi
-    
-    # Backup existing config.fish
-    if [[ -f "$fish_config_file" ]]; then
-        cp "$fish_config_file" "$fish_config_file.backup.$(date +%Y%m%d_%H%M%S)"
-        log_info "Backed up existing fish config"
-    fi
-    
-    # Add source line to config.fish
-    echo "" >> "$fish_config_file"
-    echo "# Smart Suggestion # smart-suggestion" >> "$fish_config_file"
-    echo "$source_line" >> "$fish_config_file"
-    
-    log_success "Added smart-suggestion to $fish_config_file with proxy mode enabled by default"
-}
-
 # Display post-installation instructions
 show_post_install_instructions() {
     echo ""
@@ -386,11 +285,7 @@ show_post_install_instructions() {
     echo -e "   ${YELLOW}export GEMINI_API_KEY=\"your-api-key\"${NC}                        # For Google Gemini"
     echo ""
     echo "2. Reload your shell:"
-    if [[ "$SHELL_TYPE" == "fish" ]]; then
-        echo -e "   ${YELLOW}source ~/.config/fish/config.fish${NC}"
-    else
-        echo -e "   ${YELLOW}source ~/.zshrc${NC}"
-    fi
+    echo -e "   ${YELLOW}source ~/.zshrc${NC}"
     echo ""
     echo "3. Test the installation:"
     echo -e "   ${YELLOW}$INSTALL_DIR/smart-suggestion${NC}"
@@ -421,17 +316,11 @@ main() {
     # Install smart-suggestion
     install_smart_suggestion
     
-    # Check for zsh-autosuggestions if using zsh
-    if [[ "$SHELL_TYPE" == "zsh" ]]; then
-        check_zsh_autosuggestions
-    fi
+    # Check for zsh-autosuggestions
+    check_zsh_autosuggestions
     
-    # Setup shell configuration based on detected shell
-    if [[ "$SHELL_TYPE" == "fish" ]]; then
-        setup_fish_config
-    else
-        setup_zshrc
-    fi
+    # Setup zshrc
+    setup_zshrc
     
     # Show post-installation instructions
     show_post_install_instructions
@@ -449,10 +338,6 @@ case "${1:-}" in
         echo "  --shell [zsh|fish]    Install for specific shell (auto-detected if not specified)"
         echo "  --uninstall           Uninstall smart-suggestion"
         echo ""
-        echo "Supported shells:"
-        echo "  - zsh                 Default shell, requires zsh-autosuggestions"
-        echo "  - fish                Fish shell support"
-        echo ""
         echo "Environment variables:"
         echo "  INSTALL_DIR    Installation directory (default: $INSTALL_DIR)"
         exit 0
@@ -460,51 +345,28 @@ case "${1:-}" in
     --uninstall)
         log_info "Uninstalling smart-suggestion..."
         
-        # Detect shell type first
-        detect_shell
-        
         # Remove installation directory
         if [[ -d "$INSTALL_DIR" ]]; then
             rm -rf "$INSTALL_DIR"
             log_success "Removed installation directory: $INSTALL_DIR"
         fi
         
-        # Remove from shell config files
-        if [[ "$SHELL_TYPE" == "fish" ]]; then
-            # Remove from fish config
-            local fish_config_file="$HOME/.config/fish/config.fish"
-            if [[ -f "$fish_config_file" ]]; then
-                # Create backup
-                cp "$fish_config_file" "$fish_config_file.backup.$(date +%Y%m%d_%H%M%S)"
-                
-                # Remove smart-suggestion lines
-                grep -v "smart-suggestion" "$fish_config_file" > "$fish_config_file.tmp" && mv "$fish_config_file.tmp" "$fish_config_file"
-                log_success "Removed smart-suggestion from fish config"
-            fi
-            echo "Please restart your shell or run: source $fish_config_file"
-        else
-            # Remove from .zshrc
-            if [[ -f "$HOME/.zshrc" ]]; then
-                # Create backup
-                cp "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
-                
-                # Remove smart-suggestion lines
-                grep -v "smart-suggestion" "$HOME/.zshrc" > "$HOME/.zshrc.tmp" && mv "$HOME/.zshrc.tmp" "$HOME/.zshrc"
-                log_success "Removed smart-suggestion from .zshrc"
-            fi
-            echo "Please restart your shell or run: source ~/.zshrc"
+        # Remove from .zshrc
+        if [[ -f "$HOME/.zshrc" ]]; then
+            # Create backup
+            cp "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
+            
+            # Remove smart-suggestion lines
+            grep -v "smart-suggestion" "$HOME/.zshrc" > "$HOME/.zshrc.tmp" && mv "$HOME/.zshrc.tmp" "$HOME/.zshrc"
+            log_success "Removed smart-suggestion from .zshrc"
         fi
         
         log_success "Smart Suggestion uninstalled successfully!"
+        echo "Please restart your shell or run: source ~/.zshrc"
         exit 0
         ;;
     --shell)
         # Shell specified
-        if [[ -z "$2" ]]; then
-            log_error "Missing shell type after --shell"
-            echo "Usage: $0 --shell [zsh|fish]"
-            exit 1
-        fi
         detect_shell "$@"
         main
         ;;
