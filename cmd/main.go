@@ -329,12 +329,21 @@ func fetchOpenAI() (string, error) {
 		return "", fmt.Errorf("OPENAI_API_KEY environment variable is not set")
 	}
 
-	apiURL := os.Getenv("OPENAI_API_URL")
-	if apiURL == "" {
-		apiURL = "api.openai.com"
+	baseURL := os.Getenv("OPENAI_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://api.openai.com"
 	}
 
-	url := fmt.Sprintf("https://%s/v1/chat/completions", apiURL)
+	// Handle different base URL formats
+	var url string
+	if strings.HasPrefix(baseURL, "http://") || strings.HasPrefix(baseURL, "https://") {
+		// Base URL already includes protocol
+		baseURL = strings.TrimSuffix(baseURL, "/")
+		url = fmt.Sprintf("%s/v1/chat/completions", baseURL)
+	} else {
+		// Base URL is just hostname, add https protocol
+		url = fmt.Sprintf("https://%s/v1/chat/completions", baseURL)
+	}
 
 	request := OpenAIRequest{
 		Model: "gpt-4o-mini",
@@ -409,26 +418,49 @@ func fetchAzureOpenAI() (string, error) {
 		return "", fmt.Errorf("AZURE_OPENAI_API_KEY environment variable is not set")
 	}
 
-	// Azure OpenAI requires resource name and deployment name
-	resourceName := os.Getenv("AZURE_OPENAI_RESOURCE_NAME")
-	if resourceName == "" {
-		return "", fmt.Errorf("AZURE_OPENAI_RESOURCE_NAME environment variable is not set")
-	}
-
+	// Get deployment name - required for both custom and standard URLs
 	deploymentName := os.Getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 	if deploymentName == "" {
 		return "", fmt.Errorf("AZURE_OPENAI_DEPLOYMENT_NAME environment variable is not set")
 	}
 
-	// API version for Azure OpenAI
-	apiVersion := os.Getenv("AZURE_OPENAI_API_VERSION")
-	if apiVersion == "" {
-		apiVersion = "2024-10-21" // Default to latest stable version
-	}
+	// Check if custom base URL is provided
+	baseURL := os.Getenv("AZURE_OPENAI_BASE_URL")
+	var url string
 
-	// Azure OpenAI endpoint format
-	url := fmt.Sprintf("https://%s.openai.azure.com/openai/deployments/%s/chat/completions?api-version=%s",
-		resourceName, deploymentName, apiVersion)
+	if baseURL != "" {
+		// Custom base URL provided - use it directly
+		apiVersion := os.Getenv("AZURE_OPENAI_API_VERSION")
+		if apiVersion == "" {
+			apiVersion = "2024-10-21" // Default to latest stable version
+		}
+
+		// Handle different base URL formats
+		if strings.HasPrefix(baseURL, "http://") || strings.HasPrefix(baseURL, "https://") {
+			// Base URL already includes protocol
+			baseURL = strings.TrimSuffix(baseURL, "/")
+			url = fmt.Sprintf("%s/openai/deployments/%s/chat/completions?api-version=%s", baseURL, deploymentName, apiVersion)
+		} else {
+			// Base URL is just hostname, add https protocol
+			url = fmt.Sprintf("https://%s/openai/deployments/%s/chat/completions?api-version=%s", baseURL, deploymentName, apiVersion)
+		}
+	} else {
+		// Standard Azure OpenAI format - requires resource name and deployment name
+		resourceName := os.Getenv("AZURE_OPENAI_RESOURCE_NAME")
+		if resourceName == "" {
+			return "", fmt.Errorf("AZURE_OPENAI_RESOURCE_NAME environment variable is not set")
+		}
+
+		// API version for Azure OpenAI
+		apiVersion := os.Getenv("AZURE_OPENAI_API_VERSION")
+		if apiVersion == "" {
+			apiVersion = "2024-10-21" // Default to latest stable version
+		}
+
+		// Azure OpenAI endpoint format
+		url = fmt.Sprintf("https://%s.openai.azure.com/openai/deployments/%s/chat/completions?api-version=%s",
+			resourceName, deploymentName, apiVersion)
+	}
 
 	request := AzureOpenAIRequest{
 		Model: deploymentName, // In Azure OpenAI, this should match the deployment name
@@ -445,11 +477,9 @@ func fetchAzureOpenAI() (string, error) {
 
 	if debug {
 		logDebug("Sending Azure OpenAI request", map[string]any{
-			"url":           url,
-			"resource_name": resourceName,
-			"deployment":    deploymentName,
-			"api_version":   apiVersion,
-			"request":       string(jsonData),
+			"url":        url,
+			"deployment": deploymentName,
+			"request":    string(jsonData),
 		})
 	}
 
@@ -506,12 +536,21 @@ func fetchAnthropic() (string, error) {
 		return "", fmt.Errorf("ANTHROPIC_API_KEY environment variable is not set")
 	}
 
-	apiURL := os.Getenv("ANTHROPIC_API_URL")
-	if apiURL == "" {
-		apiURL = "api.anthropic.com"
+	baseURL := os.Getenv("ANTHROPIC_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://api.anthropic.com"
 	}
 
-	url := fmt.Sprintf("https://%s/v1/messages", apiURL)
+	// Handle different base URL formats
+	var url string
+	if strings.HasPrefix(baseURL, "http://") || strings.HasPrefix(baseURL, "https://") {
+		// Base URL already includes protocol
+		baseURL = strings.TrimSuffix(baseURL, "/")
+		url = fmt.Sprintf("%s/v1/messages", baseURL)
+	} else {
+		// Base URL is just hostname, add https protocol
+		url = fmt.Sprintf("https://%s/v1/messages", baseURL)
+	}
 
 	request := AnthropicRequest{
 		Model:     "claude-3-5-sonnet-20241022",
@@ -789,9 +828,9 @@ func fetchGemini() (string, error) {
 		return "", fmt.Errorf("GEMINI_API_KEY environment variable is not set")
 	}
 
-	apiURL := os.Getenv("GEMINI_API_URL")
-	if apiURL == "" {
-		apiURL = "generativelanguage.googleapis.com"
+	baseURL := os.Getenv("GEMINI_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://generativelanguage.googleapis.com"
 	}
 
 	model := os.Getenv("GEMINI_MODEL")
@@ -799,7 +838,16 @@ func fetchGemini() (string, error) {
 		model = "gemini-2.5-flash"
 	}
 
-	url := fmt.Sprintf("https://%s/v1beta/models/%s:generateContent?key=%s", apiURL, model, apiKey)
+	// Handle different base URL formats
+	var url string
+	if strings.HasPrefix(baseURL, "http://") || strings.HasPrefix(baseURL, "https://") {
+		// Base URL already includes protocol
+		baseURL = strings.TrimSuffix(baseURL, "/")
+		url = fmt.Sprintf("%s/v1beta/models/%s:generateContent?key=%s", baseURL, model, apiKey)
+	} else {
+		// Base URL is just hostname, add https protocol
+		url = fmt.Sprintf("https://%s/v1beta/models/%s:generateContent?key=%s", baseURL, model, apiKey)
+	}
 
 	// Gemini API expects a different format - system prompt and user input are combined
 	var contents []GeminiContent
