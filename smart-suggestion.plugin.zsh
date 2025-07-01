@@ -25,8 +25,10 @@ if [[ -z "$SMART_SUGGESTION_AI_PROVIDER" ]]; then
         typeset -g SMART_SUGGESTION_AI_PROVIDER="anthropic"
     elif [[ -n "$GEMINI_API_KEY" ]]; then
         typeset -g SMART_SUGGESTION_AI_PROVIDER="gemini"
+    elif [[ -n "$DEEPSEEK_API_KEY" ]]; then
+        typeset -g SMART_SUGGESTION_AI_PROVIDER="deepseek"
     else
-        echo "No AI provider selected. Please set either OPENAI_API_KEY or AZURE_OPENAI_API_KEY (with AZURE_OPENAI_RESOURCE_NAME and AZURE_OPENAI_DEPLOYMENT_NAME) or ANTHROPIC_API_KEY or GEMINI_API_KEY."
+        echo "No AI provider selected. Please set either OPENAI_API_KEY, AZURE_OPENAI_API_KEY (with AZURE_OPENAI_RESOURCE_NAME and AZURE_OPENAI_DEPLOYMENT_NAME), ANTHROPIC_API_KEY, GEMINI_API_KEY, or DEEPSEEK_API_KEY."
         return 1
     fi
 fi
@@ -160,7 +162,7 @@ function smart-suggestion() {
     echo "Configurations:"
     echo "    - SMART_SUGGESTION_KEY: Key to press to get suggestions (default: ^o, value: $SMART_SUGGESTION_KEY)."
     echo "    - SMART_SUGGESTION_SEND_CONTEXT: If \`true\`, smart-suggestion will send context information (whoami, shell, pwd, etc.) to the AI model (default: true, value: $SMART_SUGGESTION_SEND_CONTEXT)."
-    echo "    - SMART_SUGGESTION_AI_PROVIDER: AI provider to use ('openai', 'azure_openai', 'anthropic', or 'gemini', value: $SMART_SUGGESTION_AI_PROVIDER)."
+    echo "    - SMART_SUGGESTION_AI_PROVIDER: AI provider to use ('openai', 'azure_openai', 'anthropic', 'gemini', or 'deepseek', value: $SMART_SUGGESTION_AI_PROVIDER)."
     echo "    - SMART_SUGGESTION_DEBUG: Enable debug logging (default: false, value: $SMART_SUGGESTION_DEBUG)."
 }
 

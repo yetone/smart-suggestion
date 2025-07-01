@@ -57,6 +57,11 @@ type AzureOpenAIRequest = OpenAIRequest
 type AzureOpenAIResponse = OpenAIResponse
 type AzureOpenAIError = OpenAIError
 
+// DeepSeek API is OpenAI-compatible, reuse the same structures
+type DeepSeekRequest = OpenAIRequest
+type DeepSeekResponse = OpenAIResponse
+type DeepSeekError = OpenAIError
+
 // Anthropic API structures
 type AnthropicMessage struct {
 	Role    string `json:"role"`
@@ -114,31 +119,14 @@ type GeminiError struct {
 	Code    int    `json:"code"`
 }
 
-// parseAndExtractCommand parses the raw response from the AI model,
-// separating the reasoning from the command.
-func parseAndExtractCommand(response string) string {
-	closingTag := "</reasoning>"
-	if pos := strings.LastIndex(response, closingTag); pos != -1 {
-		commandPart := response[pos+len(closingTag):]
-		return strings.TrimSpace(commandPart)
-	}
-	// Fallback for responses without reasoning tags
-	return strings.TrimSpace(response)
-}
-
 // Default system prompt
 const defaultSystemPrompt = `You are a professional SRE engineer with decades of experience, proficient in all shell commands.
 
 Your tasks:
-    - First, you must reason about the user's intent in <reasoning> tags. This reasoning will not be shown to the user.
-        Your reasoning process should follow these steps:
-        1. What is the user's real intention behind the recent input context?
-        2. Did the last few commands solve the intention? Why or why not?
-        3. Based on the latest information, how can you solve the user's intention?
-    - After reasoning, you will either complete the command or provide a new command that you think the user is trying to type.
+    - Either complete the command or provide a new command that you think the user is trying to type.
     - You need to predict what command the user wants to input next based on shell history and shell buffer.
 
-RULES for the final output (after the reasoning):
+RULES:
     - If you return a completely new command for the user, prefix is with an equal sign (=).
     - If you return a completion for the user's command, prefix it with a plus sign (+).
     - MAKE SURE TO ONLY INCLUDE THE REST OF THE COMPLETION!!!
@@ -155,88 +143,35 @@ RULES for the final output (after the reasoning):
     - DO NOT INTERACT WITH THE USER IN NATURAL LANGUAGE! If you do, you will be banned from the system.
     - Note that the double quote sign is escaped. Keep this in mind when you create quotes.
 
-Example of your full response format:
-<reasoning>
-1. The user wants to see the logs for a pod that is in a CrashLoopBackOff state.
-2. The previous command 'kubectl get pods' listed the pods and their statuses, but did not show the logs.
-3. The next logical step is to use 'kubectl logs' on the failing pod to diagnose the issue.
-</reasoning>
-=kubectl -n my-namespace logs pod-name-aaa
-
-Examples:
-    * User input: 'list files in current directory';
-      Your response:
-<reasoning>
-1. The user wants to list files.
-2. No previous command.
-3. 'ls' is the command for listing files.
-</reasoning>
-=ls
-    * User input: 'cd /tm';
-      Your response:
-<reasoning>
-1. The user wants to change directory to a temporary folder.
-2. The user has typed '/tm' which is likely an abbreviation for '/tmp'.
-3. Completing with 'p' will form '/tmp'.
-</reasoning>
-+p
-    * Shell history: 'ls -l /tmp/smart-suggestion.log';
-      Your response:
-<reasoning>
-1. The user just listed details of a log file. A common next step is to view the content of that file.
-2. Listing the file does not show its content.
-3. The 'cat' command can be used to display the file content.
-</reasoning>
-=cat /tmp/smart-suggestion.log
+Examples: 
+    * User input: 'list files in current directory'; Your response: '=ls' (ls is the builtin command for listing files)
+    * User input: 'cd /tm'; Your response: '+p' (/tmp is the standard temp folder on linux and mac).
+    * Shell history: 'ls -l /tmp/smart-suggestion.log'; Your response: '=cat /tmp/smart-suggestion.log' (cat is the builtin command for concatenating files)
     * Shell buffer:
         # k -n my-namespace get pod
         NAME           READY   STATUS             RESTARTS         AGE
         pod-name-aaa   2/3     CrashLoopBackOff   358 (111s ago)   30h
         pod-name-bbb   2/3     CrashLoopBackOff   358 (3m8s ago)   30h
-      Your response:
-<reasoning>
-1. The user is checking pods in a Kubernetes namespace.
-2. The pods are in 'CrashLoopBackOff', indicating a problem. The user likely wants to see the logs to debug.
-3. The command 'kubectl logs' will show the logs for 'pod-name-aaa'.
-</reasoning>
-=kubectl -n my-namespace logs pod-name-aaa
+      Your response: '=kubectl -n my-namespace logs pod-name-aaa' (kubectl is the command for interacting with kubernetes)
     * Shell buffer:
         # k -n my-namespace get pod
         NAME           READY   STATUS             RESTARTS         AGE
         pod-name-aaa   3/3     Running            0                30h
         pod-name-bbb   0/3     Pending            0                30h
-      Your response:
-<reasoning>
-1. The user is checking pods. One pod is 'Pending'.
-2. The 'get pod' command doesn't say why it's pending.
-3. 'kubectl describe pod' will give more details about why the pod is pending.
-</reasoning>
-=kubectl -n my-namespace describe pod pod-name-bbb
+      Your response: '=kubectl -n my-namespace describe pod pod-name-bbb' (kubectl is the command for interacting with kubernetes)
     * Shell buffer:
         # k -n my-namespace get pod
         NAME           READY   STATUS             RESTARTS         AGE
         pod-name-aaa   3/3     Running            0                30h
         pod-name-bbb   0/3     Pending            0                30h
 	  User input: 'k -n'
-      Your response:
-<reasoning>
-1. The user is checking pods. One pod is 'Pending'. They started typing a command.
-2. 'get pod' was useful but now they want to investigate 'pod-name-bbb'.
-3. I will complete the command to describe the pending pod.
-</reasoning>
-+ my-namespace describe pod pod-name-bbb
+      Your response: '+ my-namespace describe pod pod-name-bbb' (kubectl is the command for interacting with kubernetes)
     * Shell buffer:
         # k get node
         NAME      STATUS   ROLES    AGE   VERSION
         node-aaa  Ready    <none>   3h    v1.25.3
         node-bbb  NotReady <none>   3h    v1.25.3
-      Your response:
-<reasoning>
-1. The user is checking Kubernetes nodes. One node is 'NotReady'.
-2. 'get node' does not show the reason for the 'NotReady' status.
-3. 'kubectl describe node' will provide detailed events and information about the node's status.
-</reasoning>
-=kubectl describe node node-bbb`
+      Your response: '=kubectl describe node node-bbb' (kubectl is the command for interacting with kubernetes)`
 
 var (
 	provider     string
@@ -287,7 +222,7 @@ func main() {
 	}
 
 	// Root command flags
-	rootCmd.Flags().StringVarP(&provider, "provider", "p", "", "AI provider (openai, azure_openai, anthropic, or gemini)")
+	rootCmd.Flags().StringVarP(&provider, "provider", "p", "", "AI provider (openai, azure_openai, anthropic, gemini, or deepseek)")
 	rootCmd.Flags().StringVarP(&input, "input", "i", "", "User input")
 	rootCmd.Flags().StringVarP(&systemPrompt, "system", "s", "", "System prompt (optional, uses default if not provided)")
 	rootCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Enable debug logging")
@@ -359,6 +294,8 @@ func runFetch(cmd *cobra.Command, args []string) {
 		suggestion, err = fetchAnthropic()
 	case "gemini":
 		suggestion, err = fetchGemini()
+	case "deepseek":
+		suggestion, err = fetchDeepSeek()
 	default:
 		err = fmt.Errorf("unsupported provider: %s", provider)
 	}
@@ -379,19 +316,15 @@ func runFetch(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Parse the suggestion to extract only the command part
-	finalSuggestion := parseAndExtractCommand(suggestion)
-
 	if debug {
 		logDebug("Successfully fetched suggestion", map[string]any{
-			"provider":           provider,
-			"input":              input,
-			"original_response":  suggestion,
-			"parsed_suggestion": finalSuggestion,
+			"provider":   provider,
+			"input":      input,
+			"suggestion": suggestion,
 		})
 	}
 
-	if err := os.WriteFile(outputFile, []byte(finalSuggestion), 0644); err != nil {
+	if err := os.WriteFile(outputFile, []byte(suggestion), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to write suggestion to file: %v\n", err)
 		os.Exit(1)
 	}
@@ -1698,4 +1631,99 @@ func runRotateLogs(cmd *cobra.Command, args []string) {
 	} else {
 		fmt.Printf("Log file %s rotated successfully. Backup files: %v\n", proxyLogFile, backups)
 	}
+}
+
+func fetchDeepSeek() (string, error) {
+	apiKey := os.Getenv("DEEPSEEK_API_KEY")
+	if apiKey == "" {
+		return "", fmt.Errorf("DEEPSEEK_API_KEY environment variable is not set")
+	}
+
+	baseURL := os.Getenv("DEEPSEEK_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://api.deepseek.com"
+	}
+
+	// Handle different base URL formats
+	var url string
+	if strings.HasPrefix(baseURL, "http://") || strings.HasPrefix(baseURL, "https://") {
+		// Base URL already includes protocol
+		baseURL = strings.TrimSuffix(baseURL, "/")
+		url = fmt.Sprintf("%s/chat/completions", baseURL)
+	} else {
+		// Base URL is just hostname, add https protocol
+		url = fmt.Sprintf("https://%s/chat/completions", baseURL)
+	}
+
+	// Get model from environment or use default
+	model := os.Getenv("DEEPSEEK_MODEL")
+	if model == "" {
+		model = "deepseek-chat" // Default to deepseek-chat which points to DeepSeek-V3-0324
+	}
+
+	request := DeepSeekRequest{
+		Model: model,
+		Messages: []OpenAIMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: input},
+		},
+	}
+
+	jsonData, err := json.Marshal(request)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	if debug {
+		logDebug("Sending DeepSeek request", map[string]any{
+			"url":     url,
+			"request": string(jsonData),
+		})
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if debug {
+		logDebug("Received DeepSeek response", map[string]any{
+			"status":   resp.Status,
+			"response": string(body),
+		})
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var response DeepSeekResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if response.Error != nil {
+		return "", fmt.Errorf("DeepSeek API error: %s", response.Error.Message)
+	}
+
+	if len(response.Choices) == 0 {
+		return "", fmt.Errorf("no choices returned from DeepSeek API")
+	}
+
+	return response.Choices[0].Message.Content, nil
 }

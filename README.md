@@ -4,7 +4,7 @@
 >
 > This project is a fork of [zsh-copilot](https://github.com/Myzel394/zsh-copilot) by [Myzel394](https://github.com/Myzel394).
 
-Get AI-powered command suggestions **directly** in your zsh shell. No complex setup, no external tools - just press `CTRL + O` and get intelligent command suggestions powered by OpenAI, Anthropic Claude, or Google Gemini.
+Get AI-powered command suggestions **directly** in your zsh shell. No complex setup, no external tools - just press `CTRL + O` and get intelligent command suggestions powered by OpenAI, Anthropic Claude, Google Gemini, or DeepSeek.
 
 > [!NOTE]
 >
@@ -15,7 +15,7 @@ Get AI-powered command suggestions **directly** in your zsh shell. No complex se
 ## Features
 
 - **🚀 Context-aware intelligent prediction**: Predicts the next command you are likely to input based on context (history, aliases, terminal buffer)
-- **🤖 Multiple AI Providers**: Support for OpenAI GPT, Anthropic Claude, and Google Gemini
+- **🤖 Multiple AI Providers**: Support for OpenAI GPT, Anthropic Claude, Google Gemini, and DeepSeek
 - **🔧 Highly Configurable**: Customize keybindings, AI provider, context sharing, and more
 
 ## Questions
@@ -169,13 +169,19 @@ export ANTHROPIC_API_KEY="your-anthropic-api-key"
 export GEMINI_API_KEY="your-gemini-api-key"
 ```
 
+#### DeepSeek
+
+```bash
+export DEEPSEEK_API_KEY="your-deepseek-api-key"
+```
+
 ### Environment Variables
 
 Configure the plugin behavior with these environment variables:
 
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
-| `SMART_SUGGESTION_AI_PROVIDER` | AI provider to use | Auto-detected | `openai`, `azure_openai`, `anthropic`, `gemini` |
+| `SMART_SUGGESTION_AI_PROVIDER` | AI provider to use | Auto-detected | `openai`, `azure_openai`, `anthropic`, `gemini`, `deepseek` |
 | `SMART_SUGGESTION_KEY` | Keybinding to trigger suggestions | `^o` | Any zsh keybinding |
 | `SMART_SUGGESTION_SEND_CONTEXT` | Send shell context to AI | `true` | `true`, `false` |
 | `SMART_SUGGESTION_PROXY_MODE` | Enable proxy mode for better context | `true` | `true`, `false` |
@@ -190,6 +196,7 @@ Configure the plugin behavior with these environment variables:
 export OPENAI_API_URL="your-custom-openai-endpoint.com"
 export ANTHROPIC_API_URL="your-custom-anthropic-endpoint.com"
 export GEMINI_API_URL="your-custom-gemini-endpoint.com"
+export DEEPSEEK_BASE_URL="your-custom-deepseek-endpoint.com"
 ```
 
 #### Custom Models
