@@ -244,6 +244,15 @@ Examples:
 =kubectl describe node node-bbb`
 
 var (
+	// These will be set during build time using ldflags
+	Version   = "dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+	OS        = "unknown"
+	Arch      = "unknown"
+)
+
+var (
 	provider     string
 	input        string
 	systemPrompt string
@@ -291,6 +300,19 @@ func main() {
 		Run:   runRotateLogs,
 	}
 
+	// Add version command
+	var versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Show version information",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("Smart Suggestion %s\n", Version)
+			fmt.Printf("Build Time: %s\n", BuildTime)
+			fmt.Printf("Git Commit: %s\n", GitCommit)
+			fmt.Printf("OS: %s\n", OS)
+			fmt.Printf("Arch: %s\n", Arch)
+		},
+	}
+
 	// Root command flags
 	rootCmd.Flags().StringVarP(&provider, "provider", "p", "", "AI provider (openai, azure_openai, anthropic, gemini, or deepseek)")
 	rootCmd.Flags().StringVarP(&input, "input", "i", "", "User input")
@@ -310,6 +332,7 @@ func main() {
 
 	rootCmd.AddCommand(proxyCmd)
 	rootCmd.AddCommand(rotateCmd)
+	rootCmd.AddCommand(versionCmd)
 
 	// Only require provider and input for the main fetch command
 	if len(os.Args) > 1 && os.Args[1] != "proxy" && os.Args[1] != "rotate-logs" {

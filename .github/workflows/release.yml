@@ -56,8 +56,13 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
         CGO_ENABLED: 0
       run: |
+        VERSION=${GITHUB_REF_NAME#v}
+        BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        GIT_COMMIT=$(git rev-parse --short HEAD)
+
         mkdir -p dist
-        go build -ldflags="-w -s" -o dist/smart-suggestion-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/main.go
+        go build -ldflags="-w -s -X main.Version=$VERSION -X main.BuildTime=$BUILD_TIME -X main.GitCommit=$GIT_COMMIT -X main.OS=$GOOS -X main.Arch=$GOARCH" \
+          -o dist/smart-suggestion-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }} ./cmd/main.go
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
