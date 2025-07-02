@@ -15,6 +15,14 @@
 (( ! ${+SMART_SUGGESTION_PROXY_MODE} )) &&
     typeset -g SMART_SUGGESTION_PROXY_MODE=true
 
+# Auto-update configuration
+(( ! ${+SMART_SUGGESTION_AUTO_UPDATE} )) &&
+    typeset -g SMART_SUGGESTION_AUTO_UPDATE=true
+
+# Update interval configuration in days
+(( ! ${+SMART_SUGGESTION_UPDATE_INTERVAL} )) &&
+    typeset -g SMART_SUGGESTION_UPDATE_INTERVAL=7
+
 # New option to select AI provider
 if [[ -z "$SMART_SUGGESTION_AI_PROVIDER" ]]; then
     if [[ -n "$OPENAI_API_KEY" ]]; then
@@ -156,6 +164,32 @@ function _do_smart_suggestion() {
     fi
 }
 
+function _check_smart_suggestion_updates() {
+    local binary_path="$HOME/.config/smart-suggestion/smart-suggestion"
+    local update_file="$HOME/.config/smart-suggestion/.last_update_check"
+    local current_time=$(date +%s)
+    local update_interval=$((SMART_SUGGESTION_UPDATE_INTERVAL * 24 * 3600))  # Convert days to seconds
+    
+    # Check if we should check for updates
+    if [[ -f "$update_file" ]]; then
+        local last_check=$(cat "$update_file" 2>/dev/null || echo "0")
+        local time_diff=$((current_time - last_check))
+        
+        if [[ $time_diff -lt $update_interval ]]; then
+            return 0  # Too soon to check again
+        fi
+    fi
+    
+    # Update the last check time
+    echo "$current_time" > "$update_file"
+    
+    # Check for updates in background
+    if [[ -f "$binary_path" ]]; then
+        ("$binary_path" update --check-only 2>/dev/null && \
+            echo "Smart Suggestion update available! Run 'smart-suggestion update' to update." || true) &
+    fi
+}
+
 function smart-suggestion() {
     echo "Smart Suggestion is now active. Press $SMART_SUGGESTION_KEY to get suggestions."
     echo ""
@@ -164,6 +198,8 @@ function smart-suggestion() {
     echo "    - SMART_SUGGESTION_SEND_CONTEXT: If \`true\`, smart-suggestion will send context information (whoami, shell, pwd, etc.) to the AI model (default: true, value: $SMART_SUGGESTION_SEND_CONTEXT)."
     echo "    - SMART_SUGGESTION_AI_PROVIDER: AI provider to use ('openai', 'azure_openai', 'anthropic', 'gemini', or 'deepseek', value: $SMART_SUGGESTION_AI_PROVIDER)."
     echo "    - SMART_SUGGESTION_DEBUG: Enable debug logging (default: false, value: $SMART_SUGGESTION_DEBUG)."
+    echo "    - SMART_SUGGESTION_AUTO_UPDATE: Enable automatic update checking (default: true, value: $SMART_SUGGESTION_AUTO_UPDATE)."
+    echo "    - SMART_SUGGESTION_UPDATE_INTERVAL: Days between update checks (default: 7, value: $SMART_SUGGESTION_UPDATE_INTERVAL)."
 }
 
 zle -N _do_smart_suggestion
@@ -171,4 +207,9 @@ bindkey "$SMART_SUGGESTION_KEY" _do_smart_suggestion
 
 if [[ "$SMART_SUGGESTION_PROXY_MODE" == "true" && -z "$TMUX" ]]; then
     _run_smart_suggestion_proxy
+fi
+
+# Add update check to plugin initialization
+if [[ "$SMART_SUGGESTION_AUTO_UPDATE" == "true" ]]; then
+    _check_smart_suggestion_updates
 fi
