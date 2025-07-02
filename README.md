@@ -194,9 +194,10 @@ Configure the plugin behavior with these environment variables:
 #### Custom API URLs
 
 ```bash
-export OPENAI_API_URL="your-custom-openai-endpoint.com"
-export ANTHROPIC_API_URL="your-custom-anthropic-endpoint.com"
-export GEMINI_API_URL="your-custom-gemini-endpoint.com"
+export OPENAI_BASE_URL="your-custom-openai-endpoint.com"
+export AZURE_OPENAI_BASE_URL="your-custom-azure-openai-endpoint.com"
+export ANTHROPIC_BASE_URL="your-custom-anthropic-endpoint.com"
+export GEMINI_BASE_URL="your-custom-gemini-endpoint.com"
 export DEEPSEEK_BASE_URL="your-custom-deepseek-endpoint.com"
 ```
 
