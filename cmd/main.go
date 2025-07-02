@@ -1,8 +1,10 @@
 package main
 
 import (
+	"archive/tar"
 	"bufio"
 	"bytes"
+	"compress/gzip"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -129,6 +131,14 @@ type GeminiResponse struct {
 type GeminiError struct {
 	Message string `json:"message"`
 	Code    int    `json:"code"`
+}
+
+type GitHubRelease struct {
+	TagName string `json:"tag_name"`
+	Assets  []struct {
+		Name               string `json:"name"`
+		BrowserDownloadURL string `json:"browser_download_url"`
+	} `json:"assets"`
 }
 
 // Default system prompt
@@ -313,6 +323,13 @@ func main() {
 		},
 	}
 
+	// Add update command
+	var updateCmd = &cobra.Command{
+		Use:   "update",
+		Short: "Update smart-suggestion to the latest version",
+		Run:   runUpdate,
+	}
+
 	// Root command flags
 	rootCmd.Flags().StringVarP(&provider, "provider", "p", "", "AI provider (openai, azure_openai, anthropic, gemini, or deepseek)")
 	rootCmd.Flags().StringVarP(&input, "input", "i", "", "User input")
@@ -333,6 +350,7 @@ func main() {
 	rootCmd.AddCommand(proxyCmd)
 	rootCmd.AddCommand(rotateCmd)
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(updateCmd)
 
 	// Only require provider and input for the main fetch command
 	if len(os.Args) > 1 && os.Args[1] != "proxy" && os.Args[1] != "rotate-logs" {
@@ -1823,4 +1841,223 @@ func fetchDeepSeek() (string, error) {
 	}
 
 	return response.Choices[0].Message.Content, nil
+}
+
+func runUpdate(cmd *cobra.Command, args []string) {
+	fmt.Println("Checking for updates...")
+
+	// Get current version
+	currentVersion := Version
+	if currentVersion == "dev" {
+		fmt.Println("Cannot update development version. Please install from releases.")
+		os.Exit(1)
+	}
+
+	// Check for latest version
+	latestVersion, downloadURL, err := getLatestVersion()
+	if err != nil {
+		fmt.Printf("Failed to check for updates: %v\n", err)
+		os.Exit(1)
+	}
+
+	if currentVersion == latestVersion {
+		fmt.Println("Smart Suggestion is already up to date!")
+		return
+	}
+
+	fmt.Printf("New version available: %s (current: %s)\n", latestVersion, currentVersion)
+
+	// Download and install update
+	if err := downloadAndInstallUpdate(downloadURL); err != nil {
+		fmt.Printf("Failed to update: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Successfully updated to version %s!\n", latestVersion)
+}
+
+func getLatestVersion() (string, string, error) {
+	resp, err := http.Get("https://api.github.com/repos/yetone/smart-suggestion/releases/latest")
+	if err != nil {
+		return "", "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", err
+	}
+
+	var release GitHubRelease
+	if err := json.Unmarshal(body, &release); err != nil {
+		return "", "", err
+	}
+
+	// Detect platform
+	platform := fmt.Sprintf("%s-%s", runtime.GOOS, runtime.GOARCH)
+
+	// Find matching asset
+	for _, asset := range release.Assets {
+		if strings.Contains(asset.Name, platform) {
+			return strings.TrimPrefix(release.TagName, "v"), asset.BrowserDownloadURL, nil
+		}
+	}
+
+	return "", "", fmt.Errorf("no release found for platform %s", platform)
+}
+
+func downloadAndInstallUpdate(downloadURL string) error {
+	// Create temporary directory
+	tempDir, err := os.MkdirTemp("", "smart-suggestion-update")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Download archive
+	tempFile := filepath.Join(tempDir, "update.tar.gz")
+	if err := downloadFile(downloadURL, tempFile); err != nil {
+		return err
+	}
+
+	// Extract archive
+	extractDir := filepath.Join(tempDir, "extracted")
+	if err := extractTarGz(tempFile, extractDir); err != nil {
+		return err
+	}
+
+	// Get current binary path
+	currentBinary, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	// Find new binary in extracted files
+	newBinary := filepath.Join(extractDir, "smart-suggestion")
+	if _, err := os.Stat(newBinary); os.IsNotExist(err) {
+		// Try to find in subdirectory
+		entries, err := os.ReadDir(extractDir)
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() {
+				candidate := filepath.Join(extractDir, entry.Name(), "smart-suggestion")
+				if _, err := os.Stat(candidate); err == nil {
+					newBinary = candidate
+					break
+				}
+			}
+		}
+	}
+
+	// Backup current binary
+	backupPath := currentBinary + ".backup"
+	if err := copyFile(currentBinary, backupPath); err != nil {
+		return err
+	}
+
+	// Replace current binary
+	if err := copyFile(newBinary, currentBinary); err != nil {
+		// Restore backup on failure
+		os.Rename(backupPath, currentBinary)
+		return err
+	}
+
+	// Make executable
+	if err := os.Chmod(currentBinary, 0755); err != nil {
+		return err
+	}
+
+	// Remove backup
+	os.Remove(backupPath)
+
+	return nil
+}
+
+// Add these helper functions
+func downloadFile(url, filepath string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	file, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	return err
+}
+
+func extractTarGz(src, dest string) error {
+	file, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	gzr, err := gzip.NewReader(file)
+	if err != nil {
+		return err
+	}
+	defer gzr.Close()
+
+	tr := tar.NewReader(gzr)
+
+	for {
+		header, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		path := filepath.Join(dest, header.Name)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(path, 0755); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				return err
+			}
+
+			file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+
+			_, err = io.Copy(file, tr)
+			file.Close()
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	return err
 }
