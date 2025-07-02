@@ -188,6 +188,8 @@ Configure the plugin behavior with these environment variables:
 | `SMART_SUGGESTION_PROXY_MODE` | Enable proxy mode for better context | `true` | `true`, `false` |
 | `SMART_SUGGESTION_DEBUG` | Enable debug logging | `false` | `true`, `false` |
 | `SMART_SUGGESTION_SYSTEM_PROMPT` | Custom system prompt | Built-in | Any string |
+| `SMART_SUGGESTION_AUTO_UPDATE` | Enable automatic update checking | `true` | `true`, `false` |
+| `SMART_SUGGESTION_UPDATE_INTERVAL` | Days between update checks | 7 | Any positive integer |
 
 ### Advanced Configuration
 

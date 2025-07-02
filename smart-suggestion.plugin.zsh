@@ -165,6 +165,12 @@ function _do_smart_suggestion() {
 }
 
 function _check_smart_suggestion_updates() {
+    # Check if SMART_SUGGESTION_UPDATE_INTERVAL is a positive integer
+    if [[ "$SMART_SUGGESTION_UPDATE_INTERVAL" -le 0 ]]; then
+        echo "SMART_SUGGESTION_UPDATE_INTERVAL must be a positive integer. Will be reset to default value."
+        SMART_SUGGESTION_UPDATE_INTERVAL=7
+    fi
+
     local binary_path="$HOME/.config/smart-suggestion/smart-suggestion"
     local update_file="$HOME/.config/smart-suggestion/.last_update_check"
     local current_time=$(date +%s)
