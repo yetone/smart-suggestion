@@ -347,6 +347,9 @@ func main() {
 	rotateCmd.Flags().StringVarP(&proxyLogFile, "log-file", "l", "/tmp/smart_suggestion_proxy.log", "Log file path to rotate (required)")
 	rotateCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Enable debug logging")
 
+	// Update command flags
+	updateCmd.Flags().BoolP("check-only", "c", false, "Only check for updates, don't install")
+
 	rootCmd.AddCommand(proxyCmd)
 	rootCmd.AddCommand(rotateCmd)
 	rootCmd.AddCommand(versionCmd)
@@ -1844,6 +1847,8 @@ func fetchDeepSeek() (string, error) {
 }
 
 func runUpdate(cmd *cobra.Command, args []string) {
+	checkOnly, _ := cmd.Flags().GetBool("check-only")
+
 	fmt.Println("Checking for updates...")
 
 	// Get current version
@@ -1862,10 +1867,17 @@ func runUpdate(cmd *cobra.Command, args []string) {
 
 	if currentVersion == latestVersion {
 		fmt.Println("Smart Suggestion is already up to date!")
-		return
+		if checkOnly {
+			os.Exit(0)
+		} else {
+			return
+		}
+	} else {
+		fmt.Printf("New version available: %s (current: %s)\n", latestVersion, currentVersion)
+		if checkOnly {
+			os.Exit(1) // Exit with code 1 to indicate update available
+		}
 	}
-
-	fmt.Printf("New version available: %s (current: %s)\n", latestVersion, currentVersion)
 
 	// Download and install update
 	if err := downloadAndInstallUpdate(downloadURL); err != nil {
