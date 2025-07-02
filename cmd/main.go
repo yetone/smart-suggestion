@@ -1854,8 +1854,10 @@ func runUpdate(cmd *cobra.Command, args []string) {
 	// Get current version
 	currentVersion := Version
 	if currentVersion == "dev" {
+		// TO TEST: Comment out this two lines and uncomment the line below to allow updating from development version
 		fmt.Println("Cannot update development version. Please install from releases.")
 		os.Exit(1)
+		// currentVersion = "0.0.0"
 	}
 
 	// Check for latest version
@@ -1987,13 +1989,51 @@ func downloadAndInstallUpdate(downloadURL string) error {
 	return nil
 }
 
-// Add these helper functions
+// Helper functions
+// downloadFile downloads a file from the given URL to the specified filepath with retry logic
+// It attempts up to 3 times with exponential backoff (1s, 2s, 4s) between retries
 func downloadFile(url, filepath string) error {
-	resp, err := http.Get(url)
+	maxRetries := 3
+	baseDelay := time.Second
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Attempt to download the file
+		err := attemptDownload(url, filepath)
+		if err == nil {
+			return nil // Success
+		}
+
+		// If this is the last attempt, return the error
+		if attempt == maxRetries-1 {
+			return fmt.Errorf("download failed after %d attempts: %w", maxRetries, err)
+		}
+
+		// Calculate delay for exponential backoff: 1s, 2s, 4s
+		delay := baseDelay * time.Duration(1<<attempt)
+		fmt.Printf("Download attempt %d failed, retrying in %v: %v\n", attempt+1, delay, err)
+		time.Sleep(delay)
+	}
+
+	return fmt.Errorf("download failed after %d attempts", maxRetries)
+}
+
+// attemptDownload performs a single download attempt
+func attemptDownload(url, filepath string) error {
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	// Check for HTTP errors
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP error: %d %s", resp.StatusCode, resp.Status)
+	}
 
 	file, err := os.Create(filepath)
 	if err != nil {
