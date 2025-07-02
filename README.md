@@ -84,6 +84,8 @@ plugins=(
 ```bash
 cd ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/smart-suggestion
 ./build.sh
+mkdir -p ~/.config/smart-suggestion
+cp ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/smart-suggestion/smart-suggestion ~/.config/smart-suggestion/
 ```
 
 4. Reload your shell:
