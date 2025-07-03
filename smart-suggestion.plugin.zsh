@@ -57,6 +57,8 @@ if [[ -z "$SMART_SUGGESTION_BINARY" ]]; then
             break
         fi
     done
+    echo "No available smart-suggestion binary found. Please ensure that it is installed correctly or set SMART_SUGGESTION_BINARY to a valid binary path."
+    return 1
 else
     if [[ ! -f "$SMART_SUGGESTION_BINARY" ]]; then
         echo "smart-suggestion binary not found at $SMART_SUGGESTION_BINARY."
