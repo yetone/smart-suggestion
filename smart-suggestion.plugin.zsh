@@ -45,9 +45,19 @@ if [[ "$SMART_SUGGESTION_DEBUG" == 'true' ]]; then
     touch /tmp/smart-suggestion.log
 fi
 
+is_omz() {
+    [[ -d "$HOME/.oh-my-zsh" ]]
+}
+
+if is_omz; then
+    PLUGIN_DIR="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/smart-suggestion"
+else
+    PLUGIN_DIR="$HOME/.config/smart-suggestion"
+fi
+
 function _run_smart_suggestion_proxy() {
     if [[ $- == *i* ]]; then
-        local binary_path="$HOME/.config/smart-suggestion/smart-suggestion"
+        local binary_path="$PLUGIN_DIR/smart-suggestion"
         if [[ ! -f "$binary_path" ]]; then
             echo "smart-suggestion binary not found at $binary_path. Please run ./build.sh to build it."
             return 1
@@ -57,26 +67,26 @@ function _run_smart_suggestion_proxy() {
 }
 
 function _fetch_suggestions() {
-    local binary_path="$HOME/.config/smart-suggestion/smart-suggestion"
-    
+    local binary_path="$PLUGIN_DIR/smart-suggestion"
+
     # Check if the binary exists
     if [[ ! -f "$binary_path" ]]; then
         echo "smart-suggestion binary not found at $binary_path. Please run ./build.sh to build it." > /tmp/.smart_suggestion_error
         return 1
     fi
-    
+
     # Prepare debug flag
     local debug_flag=""
     if [[ "$SMART_SUGGESTION_DEBUG" == 'true' ]]; then
         debug_flag="--debug"
     fi
-    
+
     # Prepare context flag
     local context_flag=""
     if [[ "$SMART_SUGGESTION_SEND_CONTEXT" == 'true' ]]; then
         context_flag="--context"
     fi
-    
+
     # Call the Go binary with proper arguments
     "$binary_path" \
         --provider "$SMART_SUGGESTION_AI_PROVIDER" \
@@ -84,7 +94,7 @@ function _fetch_suggestions() {
         --output "/tmp/smart_suggestion" \
         $debug_flag \
         $context_flag
-    
+
     return $?
 }
 
@@ -100,7 +110,7 @@ function _show_loading_animation() {
       echo -ne "\e[?25h"
     }
     trap cleanup SIGINT
-    
+
     while kill -0 $pid 2>/dev/null; do
         # Display current animation frame
         zle -R "${animation_chars[i]}"
@@ -111,7 +121,7 @@ function _show_loading_animation() {
         if [[ $i -eq 0 ]]; then
             i=1
         fi
-        
+
         sleep $interval
     done
 
@@ -171,24 +181,24 @@ function _check_smart_suggestion_updates() {
         SMART_SUGGESTION_UPDATE_INTERVAL=7
     fi
 
-    local binary_path="$HOME/.config/smart-suggestion/smart-suggestion"
-    local update_file="$HOME/.config/smart-suggestion/.last_update_check"
+    local binary_path="$PLUGIN_DIR/smart-suggestion"
+    local update_file="$PLUGIN_DIR/.last_update_check"
     local current_time=$(date +%s)
     local update_interval=$((SMART_SUGGESTION_UPDATE_INTERVAL * 24 * 3600))  # Convert days to seconds
-    
+
     # Check if we should check for updates
     if [[ -f "$update_file" ]]; then
         local last_check=$(cat "$update_file" 2>/dev/null || echo "0")
         local time_diff=$((current_time - last_check))
-        
+
         if [[ $time_diff -lt $update_interval ]]; then
             return 0  # Too soon to check again
         fi
     fi
-    
+
     # Update the last check time
     echo "$current_time" > "$update_file"
-    
+
     # Check for updates in background
     if [[ -f "$binary_path" ]]; then
         ("$binary_path" update --check-only 2>/dev/null && \

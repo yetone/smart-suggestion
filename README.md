@@ -72,11 +72,7 @@ git clone https://github.com/yetone/smart-suggestion ${ZSH_CUSTOM:-~/.oh-my-zsh/
 2. Add `smart-suggestion` to your plugins array in `~/.zshrc`:
 
 ```bash
-plugins=(
-    # your other plugins...
-    zsh-autosuggestions
-    smart-suggestion
-)
+omz plugin enable smart-suggestion
 ```
 
 3. Build the Go binary:
@@ -186,16 +182,16 @@ export DEEPSEEK_API_KEY="your-deepseek-api-key"
 
 Configure the plugin behavior with these environment variables:
 
-| Variable | Description | Default | Options |
-|----------|-------------|---------|---------|
-| `SMART_SUGGESTION_AI_PROVIDER` | AI provider to use | Auto-detected | `openai`, `azure_openai`, `anthropic`, `gemini`, `deepseek` |
-| `SMART_SUGGESTION_KEY` | Keybinding to trigger suggestions | `^o` | Any zsh keybinding |
-| `SMART_SUGGESTION_SEND_CONTEXT` | Send shell context to AI | `true` | `true`, `false` |
-| `SMART_SUGGESTION_PROXY_MODE` | Enable proxy mode for better context | `true` | `true`, `false` |
-| `SMART_SUGGESTION_DEBUG` | Enable debug logging | `false` | `true`, `false` |
-| `SMART_SUGGESTION_SYSTEM_PROMPT` | Custom system prompt | Built-in | Any string |
-| `SMART_SUGGESTION_AUTO_UPDATE` | Enable automatic update checking | `true` | `true`, `false` |
-| `SMART_SUGGESTION_UPDATE_INTERVAL` | Days between update checks | 7 | Any positive integer |
+| Variable                           | Description                          | Default       | Options                                                     |
+| ---------------------------------- | ------------------------------------ | ------------- | ----------------------------------------------------------- |
+| `SMART_SUGGESTION_AI_PROVIDER`     | AI provider to use                   | Auto-detected | `openai`, `azure_openai`, `anthropic`, `gemini`, `deepseek` |
+| `SMART_SUGGESTION_KEY`             | Keybinding to trigger suggestions    | `^o`          | Any zsh keybinding                                          |
+| `SMART_SUGGESTION_SEND_CONTEXT`    | Send shell context to AI             | `true`        | `true`, `false`                                             |
+| `SMART_SUGGESTION_PROXY_MODE`      | Enable proxy mode for better context | `true`        | `true`, `false`                                             |
+| `SMART_SUGGESTION_DEBUG`           | Enable debug logging                 | `false`       | `true`, `false`                                             |
+| `SMART_SUGGESTION_SYSTEM_PROMPT`   | Custom system prompt                 | Built-in      | Any string                                                  |
+| `SMART_SUGGESTION_AUTO_UPDATE`     | Enable automatic update checking     | `true`        | `true`, `false`                                             |
+| `SMART_SUGGESTION_UPDATE_INTERVAL` | Days between update checks           | 7             | Any positive integer                                        |
 
 ### Advanced Configuration
 
