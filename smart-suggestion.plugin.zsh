@@ -45,36 +45,32 @@ if [[ "$SMART_SUGGESTION_DEBUG" == 'true' ]]; then
     touch /tmp/smart-suggestion.log
 fi
 
-is_omz() {
-    [[ -d "$HOME/.oh-my-zsh" ]]
-}
-
-if is_omz; then
-    PLUGIN_DIR="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/smart-suggestion"
+# Detect binary path
+if [[ -z "$SMART_SUGGESTION_BINARY" ]]; then
+    candidates=(
+        "${0:a:h}/smart-suggestion"
+        "$HOME/.config/smart-suggestion/smart-suggestion"
+    )
+    for bin in "${candidates[@]}"; do
+        if [[ -f "$bin" ]]; then
+            typeset -g SMART_SUGGESTION_BINARY="$bin"
+            break
+        fi
+    done
 else
-    PLUGIN_DIR="$HOME/.config/smart-suggestion"
+    if [[ ! -f "$SMART_SUGGESTION_BINARY" ]]; then
+        echo "smart-suggestion binary not found at $SMART_SUGGESTION_BINARY."
+        return 1
+    fi
 fi
 
 function _run_smart_suggestion_proxy() {
     if [[ $- == *i* ]]; then
-        local binary_path="$PLUGIN_DIR/smart-suggestion"
-        if [[ ! -f "$binary_path" ]]; then
-            echo "smart-suggestion binary not found at $binary_path. Please run ./build.sh to build it."
-            return 1
-        fi
-        "$binary_path" proxy
+        "$SMART_SUGGESTION_BINARY" proxy
     fi
 }
 
 function _fetch_suggestions() {
-    local binary_path="$PLUGIN_DIR/smart-suggestion"
-
-    # Check if the binary exists
-    if [[ ! -f "$binary_path" ]]; then
-        echo "smart-suggestion binary not found at $binary_path. Please run ./build.sh to build it." > /tmp/.smart_suggestion_error
-        return 1
-    fi
-
     # Prepare debug flag
     local debug_flag=""
     if [[ "$SMART_SUGGESTION_DEBUG" == 'true' ]]; then
@@ -88,7 +84,7 @@ function _fetch_suggestions() {
     fi
 
     # Call the Go binary with proper arguments
-    "$binary_path" \
+    "$SMART_SUGGESTION_BINARY" \
         --provider "$SMART_SUGGESTION_AI_PROVIDER" \
         --input "$input" \
         --output "/tmp/smart_suggestion" \
@@ -181,8 +177,7 @@ function _check_smart_suggestion_updates() {
         SMART_SUGGESTION_UPDATE_INTERVAL=7
     fi
 
-    local binary_path="$PLUGIN_DIR/smart-suggestion"
-    local update_file="$PLUGIN_DIR/.last_update_check"
+    local update_file="$(dirname $SMART_SUGGESTION_BINARY)/.last_update_check"
     local current_time=$(date +%s)
     local update_interval=$((SMART_SUGGESTION_UPDATE_INTERVAL * 24 * 3600))  # Convert days to seconds
 
@@ -200,10 +195,8 @@ function _check_smart_suggestion_updates() {
     echo "$current_time" > "$update_file"
 
     # Check for updates in background
-    if [[ -f "$binary_path" ]]; then
-        ("$binary_path" update --check-only 2>/dev/null && \
-            echo "Smart Suggestion update available! Run 'smart-suggestion update' to update." || true) &
-    fi
+    ("$SMART_SUGGESTION_BINARY" update --check-only 2>/dev/null && \
+        echo "Smart Suggestion update available! Run 'smart-suggestion update' to update." || true) &
 }
 
 function smart-suggestion() {
