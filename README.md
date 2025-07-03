@@ -195,16 +195,22 @@ export DEEPSEEK_API_KEY="your-deepseek-api-key"
 
 Configure the plugin behavior with these environment variables:
 
-| Variable                           | Description                          | Default       | Options                                                     |
-| ---------------------------------- | ------------------------------------ | ------------- | ----------------------------------------------------------- |
-| `SMART_SUGGESTION_AI_PROVIDER`     | AI provider to use                   | Auto-detected | `openai`, `azure_openai`, `anthropic`, `gemini`, `deepseek` |
-| `SMART_SUGGESTION_KEY`             | Keybinding to trigger suggestions    | `^o`          | Any zsh keybinding                                          |
-| `SMART_SUGGESTION_SEND_CONTEXT`    | Send shell context to AI             | `true`        | `true`, `false`                                             |
-| `SMART_SUGGESTION_PROXY_MODE`      | Enable proxy mode for better context | `true`        | `true`, `false`                                             |
-| `SMART_SUGGESTION_DEBUG`           | Enable debug logging                 | `false`       | `true`, `false`                                             |
-| `SMART_SUGGESTION_SYSTEM_PROMPT`   | Custom system prompt                 | Built-in      | Any string                                                  |
-| `SMART_SUGGESTION_AUTO_UPDATE`     | Enable automatic update checking     | `true`        | `true`, `false`                                             |
-| `SMART_SUGGESTION_UPDATE_INTERVAL` | Days between update checks           | 7             | Any positive integer                                        |
+| Variable                           | Description                           | Default       | Options                                                     |
+|------------------------------------|---------------------------------------|---------------|-------------------------------------------------------------|
+| `SMART_SUGGESTION_AI_PROVIDER`     | AI provider to use                    | Auto-detected | `openai`, `azure_openai`, `anthropic`, `gemini`, `deepseek` |
+| `SMART_SUGGESTION_KEY`             | Keybinding to trigger suggestions     | `^o`          | Any zsh keybinding                                          |
+| `SMART_SUGGESTION_SEND_CONTEXT`    | Send shell context to AI              | `true`        | `true`, `false`                                             |
+| `SMART_SUGGESTION_PROXY_MODE`      | Enable proxy mode for better context  | `true`        | `true`, `false`                                             |
+| `SMART_SUGGESTION_DEBUG`           | Enable debug logging                  | `false`       | `true`, `false`                                             |
+| `SMART_SUGGESTION_SYSTEM_PROMPT`   | Custom system prompt                  | Built-in      | Any string                                                  |
+| `SMART_SUGGESTION_AUTO_UPDATE`     | Enable automatic update checking      | `true`        | `true`, `false`                                             |
+| `SMART_SUGGESTION_UPDATE_INTERVAL` | Days between update checks            | 7             | Any positive integer                                        |
+| `SMART_SUGGESTION_BINARY`          | Path to the `smart_suggestion` binary | Auto-detected | Any valid filepath to a valid `smart_suggestion` binary     |
+
+If `SMART_SUGGESTION_BINARY` is not specified, we look for one in the following locations:
+
+1. `smart_suggestion` beside the current `smart-suggestion.plugin.zsh`
+1. `~/.config/smart-suggestion/smart_suggestion`
 
 ### Advanced Configuration
 
