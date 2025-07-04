@@ -106,14 +106,16 @@ function _show_loading_animation() {
     local i=1
 
     cleanup() {
-      kill $pid
-      echo -ne "\e[?25h"
+        kill $pid
+        tput -S <<<"bicr ed rc cnorm"
+        touch /tmp/.smart_suggestion_canceled
     }
     trap cleanup SIGINT
 
+    tput -S <<<"sc civis"
     while kill -0 $pid 2>/dev/null; do
         # Display current animation frame
-        zle -R "${animation_chars[i]}"
+        zle -R "${animation_chars[i]} Press <Ctrl-c> to cancel"
 
         # Update index, make sure it starts at 1
         i=$(( (i + 1) % ${#animation_chars[@]} ))
@@ -125,13 +127,14 @@ function _show_loading_animation() {
         sleep $interval
     done
 
-    echo -ne "\e[?25h"
+    tput cnorm
     trap - SIGINT
 }
 
 function _do_smart_suggestion() {
     ##### Get input
     rm -f /tmp/smart_suggestion
+    rm -f /tmp/.smart_suggestion_canceled
     rm -f /tmp/.smart_suggestion_error
     local input=$(echo "${BUFFER:0:$CURSOR}" | tr '\n' ';')
 
@@ -146,6 +149,11 @@ function _do_smart_suggestion() {
 
     if [[ "$SMART_SUGGESTION_DEBUG" == 'true' ]]; then
         echo "{\"date\":\"$(date)\",\"log\":\"Fetched message\",\"input\":\"$input\",\"response_code\":\"$response_code\"}" >> /tmp/smart-suggestion.log
+    fi
+
+    if [[ -f /tmp/.smart_suggestion_canceled ]]; then
+        _zsh_autosuggest_clear
+        return 1
     fi
 
     if [[ ! -f /tmp/smart_suggestion ]]; then
