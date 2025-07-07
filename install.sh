@@ -46,7 +46,7 @@ is_omz() {
 
 if is_omz; then
     log_info "Oh My Zsh installation detected."
-    INSTALL_DIR="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/smart-suggestion"
+    INSTALL_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/smart-suggestion"
 fi
 
 # Detect OS and architecture
