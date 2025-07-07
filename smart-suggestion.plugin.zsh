@@ -227,7 +227,7 @@ function smart-suggestion() {
 zle -N _do_smart_suggestion
 bindkey "$SMART_SUGGESTION_KEY" _do_smart_suggestion
 
-if [[ "$SMART_SUGGESTION_PROXY_MODE" == "true" && -z "$TMUX" ]]; then
+if [[ "$SMART_SUGGESTION_PROXY_MODE" == "true" && -z "$TMUX" && -z "$KITTY_LISTEN_ON" ]]; then
     _run_smart_suggestion_proxy
 fi
 

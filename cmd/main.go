@@ -1578,6 +1578,20 @@ func getShellBuffer() (string, error) {
 		}
 	}
 
+	// Try kitty if available
+	if os.Getenv("KITTY_LISTEN_ON") != "" {
+		cmd := exec.Command("kitten", "@", "get-text", "--extent", "all")
+		output, err := cmd.Output()
+		if err == nil {
+			return strings.TrimSpace(string(output)), nil
+		}
+		if debug {
+			logDebug("Failed to get kitty scrollback buffer", map[string]any{
+				"error": err.Error(),
+			})
+		}
+	}
+
 	// Try to read from session-specific proxy log file if it exists
 	currentSessionID := getCurrentSessionID()
 	if currentSessionID != "" && proxyLogFile != "" {
