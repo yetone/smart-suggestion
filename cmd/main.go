@@ -1562,8 +1562,17 @@ func runProxy(cmd *cobra.Command, args []string) {
 	}
 }
 
-// getShellBuffer gets terminal buffer content using multiple methods
 func getShellBuffer() (string, error) {
+	// Try to get shell buffer using tput if available
+	content, err := doGetShellBuffer()
+	if err == nil {
+		return content, nil
+	}
+	return readLatestLines(content, 100)
+}
+
+// getShellBuffer gets terminal buffer content using multiple methods
+func doGetShellBuffer() (string, error) {
 	// Try tmux first if available
 	if os.Getenv("TMUX") != "" {
 		cmd := exec.Command("tmux", "capture-pane", "-pS", "-")
@@ -1636,6 +1645,14 @@ func getShellBuffer() (string, error) {
 	}
 
 	return "", fmt.Errorf("no terminal buffer available - not in tmux/screen session and no proxy log found")
+}
+
+func readLatestLines(content string, maxLines int) (string, error) {
+	lines := strings.Split(content, "\n")
+	if len(lines) > maxLines {
+		lines = lines[len(lines)-maxLines:]
+	}
+	return strings.Join(lines, "\n"), nil
 }
 
 // readLatestProxyContent reads the latest content from proxy log file
