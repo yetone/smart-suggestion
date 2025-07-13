@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 # Build the binary
-go build -o smart-suggestion ./cmd/main.go
+go build -o smart-suggestion ./cmd/smart-suggestion/main.go
 
 echo "Build completed successfully!"
 echo "Binary created: $SCRIPT_DIR/smart-suggestion"
